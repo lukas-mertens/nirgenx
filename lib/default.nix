@@ -62,11 +62,7 @@ with builtins; with lib; {
       };
     kubernetesDeployment = submodule {
       options = {
-        enable = mkOption {
-          type = bool;
-          default = true;
-          description = "Enable this deployment";
-        };
+        enable = mkEnableOption "this deployment";
         steps = mkOption {
           type = listOf (oneOf [ strOrPath kubernetesResource helmInstallation ]);
           description = "A list of deployment steps. These can be either kubernetes resources (as a file or attrset) or helm charts";
