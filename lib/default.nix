@@ -1,7 +1,7 @@
 { lib, ... }:
 with builtins; with lib; {
   types = with types; {
-    strOrPath = coercedTo path toString str;
+    strOrPath = coercedTo path (p: "${p}") str;
     helmInstallation =
     let
       moduleConfig = submodule {
