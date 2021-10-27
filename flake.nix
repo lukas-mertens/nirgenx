@@ -36,6 +36,19 @@
           nixpkgs-fmt
         ];
       };
+
+      apps = {
+        helm-update = flake-utils.lib.mkApp {
+          name = "helm-update";
+          drv = pkgs.substituteAll {
+            name = "helm-update";
+            src = ./scripts/helm-update.py;
+            dir = "bin";
+            isExecutable = true;
+            inherit (pkgs) python3 nixUnstable;
+          };
+        };
+      };
     })
   );
 }
