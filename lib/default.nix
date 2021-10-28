@@ -65,7 +65,7 @@ with builtins; with lib; {
         mod ? chart && mod.chart ? name && mod.chart ? repository && isString mod.chart.name && isString mod.chart.repository
         && mod ? name && isString mod.name
         && mod ? namespace && isString mod.namespace
-        && mod ? values && (isAttrs mod.values || isCoercibleToString mod.values)
+        && mod ? values && (isAttrs mod.values || isPath mod.values || isString mod.values)
       );
     kubernetesResource =
       (
