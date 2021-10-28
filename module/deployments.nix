@@ -29,20 +29,22 @@ with builtins; with lib; {
                     map
                       (step:
                         if lib.types.helmInstallation.check step
-                        then (
-                          let
-                            fileName = strings.sanitizeDerivationName "helm-chart-${step.chart}-${step.namespace}-${step.name}.json";
-                            values = if isString step.values then step.values else pkgs.writeText fileName (toJSON step.values);
-                          in
-                          "${cfg.helmPackage}/bin/helm upgrade -i -n '${step.namespace}' --create-namespace -f '${values}' '${step.name}' '${step.chart}'"
-                        )
-                        else (
-                          let
-                            fileName = strings.sanitizeDerivationName "k8s${if step ? kind then "-${step.kind}" else ""}${if (step ? metadata) then "${if step.metadata ? name then "-${step.metadata.name}" else ""}${if step.metadata ? namespace then "-${step.metadata.namespace}" else ""}" else ""}.json";
-                            resource = if isString step then step else pkgs.writeText fileName (toJSON step);
-                          in
-                          "${cfg.kubectlPackage}/bin/kubectl apply -f '${resource}'"
-                        )
+                        then
+                          (
+                            let
+                              fileName = strings.sanitizeDerivationName "helm-chart-${step.chart.repository}/${step.chart.name}${if isNull step.chart.version then "" else "@${step.chart.version}"}-${step.namespace}-${step.name}.json";
+                              values = if isString step.values then step.values else pkgs.writeText fileName (toJSON step.values);
+                            in
+                            "${cfg.helmPackage}/bin/helm upgrade -i -n '${step.namespace}' --create-namespace -f '${values}' '${step.name}' '${with step.chart; getHelmChart config.kubenix.helmNixPath repository name version}'"
+                          )
+                        else
+                          (
+                            let
+                              fileName = strings.sanitizeDerivationName "k8s${if step ? kind then "-${step.kind}" else ""}${if (step ? metadata) then "${if step.metadata ? name then "-${step.metadata.name}" else ""}${if step.metadata ? namespace then "-${step.metadata.namespace}" else ""}" else ""}.json";
+                              resource = if isString step then step else pkgs.writeText fileName (toJSON step);
+                            in
+                            "${cfg.kubectlPackage}/bin/kubectl apply -f '${resource}'"
+                          )
                       )
                       deployment.steps
                   );

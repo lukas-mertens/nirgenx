@@ -10,45 +10,47 @@
     };
   };
 
-  outputs = inputs @ {
-    self,
-    flake-utils,
-    nixpkgs,
-    ...
-  }:
-  let
-    flakeLib = import ./lib { inherit lib; };
-    lib = with nixpkgs.lib; recursiveUpdate nixpkgs.lib flakeLib;
-  in
-  {
-    lib = flakeLib;
-    nixosModules =
-      builtins.map
-      (x: {config, pkgs, ... }: (x { inherit config lib pkgs; })) # Overwrite the lib that is passed to the module with out own
-      (import ./module);
-  } // (
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    inputs @ { self
+    , flake-utils
+    , nixpkgs
+    , ...
+    }:
     let
-      pkgs = nixpkgs.legacyPackages."${system}";
-    in {
-      devShell = pkgs.mkShell {
-        builtInputs = with pkgs; [
-          nixpkgs-fmt
-        ];
-      };
+      flakeLib = import ./lib { inherit lib; };
+      lib = with nixpkgs.lib; recursiveUpdate nixpkgs.lib flakeLib;
+    in
+    {
+      lib = flakeLib;
+      nixosModules =
+        builtins.map
+          (x: { config, pkgs, ... }: (x { inherit config lib pkgs; })) # Overwrite the lib that is passed to the module with out own
+          (import ./module);
+    } // (
+      flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages."${system}";
+      in
+      {
+        devShell = pkgs.mkShell {
+          builtInputs = with pkgs; [
+            nixpkgs-fmt
+          ];
+        };
 
-      apps = {
-        helm-update = flake-utils.lib.mkApp {
-          name = "helm-update";
-          drv = pkgs.substituteAll {
+        apps = {
+          helm-update = flake-utils.lib.mkApp {
             name = "helm-update";
-            src = ./scripts/helm-update.py;
-            dir = "bin";
-            isExecutable = true;
-            inherit (pkgs) python3 nixUnstable;
+            drv = pkgs.substituteAll {
+              name = "helm-update";
+              src = ./script/helm-update.py;
+              dir = "bin";
+              isExecutable = true;
+              inherit (pkgs) nixUnstable;
+              python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
+            };
           };
         };
-      };
-    })
-  );
+      })
+    );
 }

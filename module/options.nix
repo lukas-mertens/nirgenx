@@ -21,15 +21,9 @@ with builtins; with lib; {
         default = pkgs.kubernetes-helm;
         description = "Helm package to use for deploying helm charts";
       };
-      helmRepository = mkOption {
-        type = attrsOf str;
-        default = { };
-        description = "Helm repositories that will be added";
-        example = ''
-          {
-            bitnami = "https://charts.bitnami.com/bitnami";
-          };
-        '';
+      helmNixPath = mkOption {
+        type = str;
+        description = "Path of the directory that contains your helm.nix";
       };
       kubectlPackage = mkOption {
         type = package;
