@@ -3,6 +3,7 @@ with builtins; with lib; {
   config =
     let
       cfg = config.kubenix;
+      serviceName = deployment: "kubernetes-deployment-${deployment}";
     in
     mkIf cfg.enable {
 
@@ -10,10 +11,10 @@ with builtins; with lib; {
         mapAttrs'
           (name: deployment:
             nameValuePair
-              "kubernetes-deployment-${name}"
+              (serviceName name)
               (
                 mkIf deployment.enable rec {
-                  requires = cfg.waitForUnits ++ [ "helm-repositories.service" ];
+                  requires = cfg.waitForUnits ++ (map (dep: "${serviceName dep}.service") deployment.dependencies);
                   after = requires;
                   wantedBy = [ "multi-user.target" ];
                   environment = {

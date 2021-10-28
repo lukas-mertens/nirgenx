@@ -80,6 +80,11 @@ with builtins; with lib; {
     kubernetesDeployment = submodule {
       options = {
         enable = mkEnableOption "this deployment";
+        dependencies = mkOption {
+          type = listOf str;
+          default = [ ];
+          description = "Names of other deployments that must be run before this one";
+        };
         steps = mkOption {
           type = listOf (oneOf [ strOrPath kubernetesResource helmInstallation ]);
           description = "A list of deployment steps. These can be either kubernetes resources (as a file or attrset) or helm charts";
