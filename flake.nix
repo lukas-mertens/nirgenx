@@ -52,7 +52,7 @@
             src = ./script/yaml2nix.sh;
             dir = "bin";
             isExecutable = true;
-            inherit (pkgs) bash nixUnstable nixfmt yaml2json;
+            inherit (pkgs) bash nixUnstable nixfmt remarshal;
           };
         };
 
