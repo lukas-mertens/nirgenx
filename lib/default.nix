@@ -100,7 +100,7 @@ with builtins; with lib; {
       helmNix = import "${helmNixPath}/helm.nix";
       repos =
         mapAttrs
-          (name: url: { inherit url; inherit (lockfile.${name}) entries; })
+          (name: url: { inherit url; inherit (lockfile."${name}") entries; })
           helmNix;
     in
     repos;
@@ -112,9 +112,9 @@ with builtins; with lib; {
     version:
     let
       repos = getHelmRepos helmNixPath;
-      repoUrl = repos.${repo}.url;
-      latestVersion = head (sort (a: b: ! (versionOlder a.version b.version)) repos.${repo}.entries.${chart});
-      filteredVersionCandidates = filter (x: x.version == version) repos.${repo}.entries.${chart};
+      repoUrl = repos."${repo}".url;
+      latestVersion = head (sort (a: b: ! (versionOlder a.version b.version)) repos."${repo}".entries."${chart}");
+      filteredVersionCandidates = filter (x: x.version == version) repos."${repo}".entries."${chart}";
       filteredVersion =
         if length filteredVersionCandidates == 0 then
           abort "Version ${version} not found for chart ${repo}/${chart}"
@@ -147,7 +147,7 @@ with builtins; with lib; {
     version:
     let
       repos = getHelmRepos helmNixPath;
-      repoUrl = repos.${repo}.url;
+      repoUrl = repos."${repo}".url;
       entry = getHelmChart helmNixPath repo chart version;
       chartUrl = head entry.urls;
       fullUrl = if hasPrefix "https://" chartUrl || hasPrefix "http://" chartUrl then chartUrl else "${repoUrl}/${chartUrl}";
