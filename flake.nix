@@ -38,17 +38,21 @@
           ];
         };
 
+        packages = {
+          helm-update = pkgs.substituteAll {
+            name = "helm-update";
+            src = ./script/helm-update.py;
+            dir = "bin";
+            isExecutable = true;
+            inherit (pkgs) nixUnstable;
+            python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
+          };
+        };
+
         apps = {
           helm-update = flake-utils.lib.mkApp {
             name = "helm-update";
-            drv = pkgs.substituteAll {
-              name = "helm-update";
-              src = ./script/helm-update.py;
-              dir = "bin";
-              isExecutable = true;
-              inherit (pkgs) nixUnstable;
-              python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
-            };
+            drv = self.packages.${system}.helm-update;
           };
         };
       })
