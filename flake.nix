@@ -47,12 +47,23 @@
             inherit (pkgs) nixUnstable;
             python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
           };
+          yaml2nix = pkgs.substituteAll {
+            name = "yaml2nix";
+            src = ./script/yaml2nix.sh;
+            dir = "bin";
+            isExecutable = true;
+            inherit (pkgs) bash nixUnstable nixfmt yaml2json;
+          };
         };
 
         apps = {
           helm-update = flake-utils.lib.mkApp {
             name = "helm-update";
             drv = self.packages.${system}.helm-update;
+          };
+          yaml2nix = flake-utils.lib.mkApp {
+            name = "yaml2nix";
+            drv = self.packages.${system}.yaml2nix;
           };
         };
       })
