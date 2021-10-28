@@ -88,12 +88,8 @@ with builtins; with lib; {
     };
   };
 
-  # (head (sort (a: b: ! (lib.versionOlder a.version b.version)) ((fromJSON (readFile ./helm.lock)).bitnami.entries.))).urls
-  getHelmChart =
+  getHelmRepos =
     helmNixPath:
-    repo:
-    chart:
-    version:
     let
       lockfile = fromJSON (readFile "${helmNixPath}/helm.lock");
       helmNix = import "${helmNixPath}/helm.nix";
@@ -101,6 +97,16 @@ with builtins; with lib; {
         mapAttrs
           (name: url: { inherit url; inherit (lockfile.${name}) entries; })
           helmNix;
+    in
+    repos;
+
+  getHelmChart =
+    helmNixPath:
+    repo:
+    chart:
+    version:
+    let
+      repos = getHelmRepos helmNixPath;
       repoUrl = repos.${repo}.url;
       latestVersion = head (sort (a: b: ! (versionOlder a.version b.version)) repos.${repo}.entries.${chart});
       filteredVersionCandidates = filter (x: x.version == version) repos.${repo}.entries.${chart};
@@ -111,15 +117,37 @@ with builtins; with lib; {
           abort "Multiple candidates for version ${version} found for chart ${repo}/${chart}"
         else
           head filteredVersionCandidates;
-      chartDef =
-        if isNull version then
-          latestVersion
-        else
-          filteredVersion;
-      chartUrl = head chartDef.urls;
+    in
+    if isNull version then
+      latestVersion
+    else
+      filteredVersion;
+
+  getHelmChartLatest =
+    helmNixPath:
+    repo:
+    chart:
+    getHelmChartEntry helmNixPath repo chart null;
+
+  getHelmChartLatestVersion =
+    helmNixPath:
+    repo:
+    chart:
+    (getHelmChart helmNixPath repo chart null).version;
+
+  getHelmChartTar =
+    helmNixPath:
+    repo:
+    chart:
+    version:
+    let
+      repos = getHelmRepos helmNixPath;
+      repoUrl = repos.${repo}.url;
+      entry = getHelmChart helmNixPath repo chart version;
+      chartUrl = head entry.urls;
       fullUrl = if hasPrefix "https://" chartUrl || hasPrefix "http://" chartUrl then chartUrl else "${repoUrl}/${chartUrl}";
     in
-    if length chartDef.urls != 1 then
+    if length entry.urls != 1 then
       abort "Chart has none or more than one URL! This is not supported"
-    else (fetchurl { url = fullUrl; sha256 = chartDef.digest; });
+    else (fetchurl { url = fullUrl; sha256 = entry.digest; });
 }
