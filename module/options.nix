@@ -22,7 +22,7 @@ with builtins; with lib; {
         description = "Helm package to use for deploying helm charts";
       };
       helmNixPath = mkOption {
-        type = str;
+        type = strOrPath;
         description = "Path of the directory that contains your helm.nix";
       };
       kubectlPackage = mkOption {
