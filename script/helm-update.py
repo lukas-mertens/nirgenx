@@ -8,6 +8,29 @@ import yaml
 from subprocess import Popen
 from pathlib import Path
 
+
+def reformat(lock):
+  result = {}
+  for entry in lock["entries"]:
+    versions = {}
+    for version in lock["entries"][entry]:
+      num = version["version"]
+      name = version["name"]
+      if len(version["urls"]) == 0:
+        sys.stderr.write(f"Version {num} of release {name} has no URL!")
+        sys.stderr.flush()
+        continue
+      if len(version["urls"]) > 1:
+        sys.stderr.write(f"Version {num} of release {name} has multiple URLs!")
+        sys.stderr.flush()
+      versions[num] = {
+        "digest": version["digest"],
+        "url": version["urls"][0],
+      }
+    result[entry] = versions
+  return result
+
+
 lockname = "helm.lock"
 args = sys.argv[1:]
 
@@ -27,6 +50,8 @@ config = json.loads(decoded)
 toUpdate = config.keys()
 if len(args) > 0:
   toUpdate = args
+  if len(args) == 1 and args[0] == "--migrate":
+    toUpdate = []
   missing = []
   for repo in toUpdate:
     if not repo in config:
@@ -42,7 +67,10 @@ if Path(lockname).is_file():
     oldlock = json.loads(f.read())
   for key in config.keys():
     if key in oldlock:
-      lockfile[key] = oldlock[key]
+      if "entries" in oldlock[key]:
+        lockfile[key] = reformat(oldlock[key])
+      else:
+        lockfile[key] = oldlock[key]
 
 for repo in toUpdate:
   print(f"Updating {repo}...")
@@ -54,7 +82,7 @@ for repo in toUpdate:
     }
   )
   with urllib.request.urlopen(request) as response:
-    lockfile[repo] = yaml.load(response.read(), Loader=yaml.CLoader)
+    lockfile[repo] = reformat(yaml.load(response.read(), Loader=yaml.CLoader))
 
 with open(lockname, "w") as f:
   f.write(json.dumps(lockfile, indent = 2))

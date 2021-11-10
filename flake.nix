@@ -24,7 +24,7 @@
       lib = flakeLib;
       nixosModules =
         builtins.map
-          (x: { config, pkgs, ... }: (x { inherit config lib pkgs; })) # Overwrite the lib that is passed to the module with out own
+          (x: { config, pkgs, ... }: (x { inherit config lib pkgs; })) # Overwrite the lib that is passed to the module with our own
           (import ./module);
     } // (
       flake-utils.lib.eachDefaultSystem (system:

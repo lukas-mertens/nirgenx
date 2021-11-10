@@ -100,7 +100,7 @@ with builtins; with lib; {
       helmNix = import "${helmNixPath}/helm.nix";
       repos =
         mapAttrs
-          (name: url: { inherit url; inherit (lockfile."${name}") entries; })
+          (name: url: { inherit url; entries = (lockfile."${name}"); })
           helmNix;
     in
     repos;
@@ -113,20 +113,13 @@ with builtins; with lib; {
     let
       repos = getHelmRepos helmNixPath;
       repoUrl = repos."${repo}".url;
-      latestVersion = head (sort (a: b: ! (versionOlder a.version b.version)) repos."${repo}".entries."${chart}");
-      filteredVersionCandidates = filter (x: x.version == version) repos."${repo}".entries."${chart}";
-      filteredVersion =
-        if length filteredVersionCandidates == 0 then
-          abort "Version ${version} not found for chart ${repo}/${chart}"
-        else if length filteredVersionCandidates > 1 then
-          abort "Multiple candidates for version ${version} found for chart ${repo}/${chart}"
-        else
-          head filteredVersionCandidates;
+      latestVersion = head (sort (a: b: ! (versionOlder a.version b.version)) (mapAttrsToList (n: v: v // { version = n; }) repos."${repo}".entries."${chart}"));
+      selectedVersion = repos."${repo}".entries."${chart}"."${version}";
     in
     if isNull version then
       latestVersion
     else
-      filteredVersion;
+      selectedVersion;
 
   getHelmChartLatest =
     helmNixPath:
@@ -149,10 +142,7 @@ with builtins; with lib; {
       repos = getHelmRepos helmNixPath;
       repoUrl = repos."${repo}".url;
       entry = getHelmChart helmNixPath repo chart version;
-      chartUrl = head entry.urls;
-      fullUrl = if hasPrefix "https://" chartUrl || hasPrefix "http://" chartUrl then chartUrl else "${repoUrl}/${chartUrl}";
+      fullUrl = if hasPrefix "https://" entry.url || hasPrefix "http://" entry.url then entry.url else "${repoUrl}/${entry.url}";
     in
-    if length entry.urls != 1 then
-      abort "Chart has none or more than one URL! This is not supported"
-    else (fetchurl { url = fullUrl; sha256 = entry.digest; });
+    fetchurl { url = fullUrl; sha256 = entry.digest; };
 }
