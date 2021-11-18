@@ -59,7 +59,7 @@ with builtins; with lib; {
               '';
             };
           };
-        };
+        } // { description = "Helm chart installation"; };
       in
       addCheck moduleConfig (mod:
         mod ? chart && mod.chart ? name && mod.chart ? repository && isString mod.chart.name && isString mod.chart.repository
@@ -69,7 +69,7 @@ with builtins; with lib; {
       );
     kubernetesResource =
       (
-        addCheck (attrsOf anything) # These apply to all k8s resources I can think of right not, this may need to be changed
+        addCheck (attrsOf anything) # These apply to all k8s resources I can think of right now, this may need to be changed
           (val:
             val ? apiVersion && isString val.apiVersion
             && val ? kind && isString val.kind
@@ -77,6 +77,35 @@ with builtins; with lib; {
       ) // {
         description = "kubernetes resource definition";
       };
+    scriptExecution =
+      let
+        moduleConfig = # submodule {
+        #   options = {
+        #     script = mkOption {
+        #       type = lines;
+        #       description = "A shell script snippet that will be executed";
+        #     };
+        #     scriptFile = mkOption {
+        #       type = strOrPath;
+        #       description = "Link to a script that will be executed";
+        #     };
+        #   };
+        # }
+        attrsOf anything // { description = "script execution"; };
+      in
+      addCheck moduleConfig (mod:
+        if (mod ? script && isString mod.script) || (mod ? scriptFile && (isPath mod.scriptFile || isString mod.scriptFile))
+        then
+        let
+          attrs = traceValSeq (attrNames (traceValSeq mod));
+        in
+        (
+          if !(mod ? script && isString mod.script && mod ? scriptFile && (isPath mod.scriptFile || isString mod.scriptFile))
+          then true
+          else abort "Can not have both a scriptFile and script attribute!"
+        )
+        else false
+      );
     kubernetesDeployment = submodule {
       options = {
         enable = mkEnableOption "this deployment";
@@ -86,8 +115,8 @@ with builtins; with lib; {
           description = "Names of other deployments that must be run before this one";
         };
         steps = mkOption {
-          type = listOf (oneOf [ strOrPath kubernetesResource helmInstallation ]);
-          description = "A list of deployment steps. These can be either kubernetes resources (as a file or attrset) or helm charts";
+          type = listOf (oneOf [ strOrPath kubernetesResource helmInstallation scriptExecution ]);
+          description = "A list of deployment steps. These can be either kubernetes resources (as a file or attrset), helm charts or script executions";
         };
       };
     };
