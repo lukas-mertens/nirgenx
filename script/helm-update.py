@@ -74,8 +74,9 @@ if Path(lockname).is_file():
 
 for repo in toUpdate:
   print(f"Updating {repo}...")
+  slash = "/" if not config[repo][-1] == "/" else ""
   request = urllib.request.Request(
-    f"{config[repo]}/index.yaml",
+    f"{config[repo]}{slash}index.yaml",
     data=None,
     headers = {
       "User-Agent": "Helm/3.5.4" # Some chart repos don't want to talk to python
