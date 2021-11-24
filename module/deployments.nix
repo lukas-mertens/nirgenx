@@ -24,6 +24,10 @@ with builtins; with lib; {
                   serviceConfig = {
                     Type = "oneshot";
                   };
+                  path = [
+                    cfg.helmPackage
+                    cfg.kubectlPackage
+                  ];
                   script = concatStringsSep "\n" ( flatten (
                     [ "set -eux" ]
                     ++
@@ -36,7 +40,7 @@ with builtins; with lib; {
                               fileName = strings.sanitizeDerivationName "helm-chart-${step.chart.repository}/${step.chart.name}${if isNull step.chart.version then "" else "@${step.chart.version}"}-${step.namespace}-${step.name}.json";
                               values = if isString step.values then step.values else pkgs.writeText fileName (toJSON step.values);
                             in
-                            ["${cfg.helmPackage}/bin/helm upgrade -i -n '${step.namespace}' --create-namespace -f '${values}' '${step.name}' '${getHelmChartTar config.kubenix.helmNixPath step.chart.repository step.chart.name step.chart.version}'"]
+                            ["${cfg.helmPackage}/bin/helm upgrade -i -n '${step.namespace}' --create-namespace -f '${values}' '${step.name}' '${helm.getTar config.kubenix.helmNixPath step.chart.repository step.chart.name step.chart.version}'"]
                           )
                         else if lib.types.scriptExecution.check step
                         then

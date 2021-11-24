@@ -1,7 +1,9 @@
 { lib, ... }:
 with builtins; with lib; {
   types = with types; {
+
     strOrPath = coercedTo path (p: "${p}") str;
+
     helmInstallation =
       let
         moduleConfig = submodule {
@@ -67,6 +69,7 @@ with builtins; with lib; {
         && mod ? namespace && isString mod.namespace
         && mod ? values && (isAttrs mod.values || isPath mod.values || isString mod.values)
       );
+
     kubernetesResource =
       (
         addCheck (attrsOf anything) # These apply to all k8s resources I can think of right now, this may need to be changed
@@ -77,6 +80,7 @@ with builtins; with lib; {
       ) // {
         description = "kubernetes resource definition";
       };
+
     scriptExecution =
       let
         moduleConfig = # submodule {
@@ -106,6 +110,7 @@ with builtins; with lib; {
         )
         else false
       );
+
     kubernetesDeployment = submodule {
       options = {
         enable = mkEnableOption "this deployment";
@@ -120,58 +125,6 @@ with builtins; with lib; {
         };
       };
     };
+
   };
-
-  getHelmRepos =
-    helmNixPath:
-    let
-      lockfile = fromJSON (readFile "${helmNixPath}/helm.lock");
-      helmNix = import "${helmNixPath}/helm.nix";
-      repos =
-        mapAttrs
-          (name: url: { inherit url; entries = (lockfile."${name}"); })
-          helmNix;
-    in
-    repos;
-
-  getHelmChart =
-    helmNixPath:
-    repo:
-    chart:
-    version:
-    let
-      repos = getHelmRepos helmNixPath;
-      repoUrl = repos."${repo}".url;
-      latestVersion = head (sort (a: b: ! (versionOlder a.version b.version)) (mapAttrsToList (n: v: v // { version = n; }) repos."${repo}".entries."${chart}"));
-      selectedVersion = repos."${repo}".entries."${chart}"."${version}";
-    in
-    if isNull version then
-      latestVersion
-    else
-      selectedVersion;
-
-  getHelmChartLatest =
-    helmNixPath:
-    repo:
-    chart:
-    getHelmChartEntry helmNixPath repo chart null;
-
-  getHelmChartLatestVersion =
-    helmNixPath:
-    repo:
-    chart:
-    (getHelmChart helmNixPath repo chart null).version;
-
-  getHelmChartTar =
-    helmNixPath:
-    repo:
-    chart:
-    version:
-    let
-      repos = getHelmRepos helmNixPath;
-      repoUrl = repos."${repo}".url;
-      entry = getHelmChart helmNixPath repo chart version;
-      fullUrl = if hasPrefix "https://" entry.url || hasPrefix "http://" entry.url then entry.url else "${repoUrl}/${entry.url}";
-    in
-    fetchurl { url = fullUrl; sha256 = entry.digest; };
 }

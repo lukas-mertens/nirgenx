@@ -16,16 +16,35 @@
     , nixpkgs
     , ...
     }:
+    with builtins; with nixpkgs.lib;
     let
-      flakeLib = import ./lib { inherit lib; };
-      lib = with nixpkgs.lib; recursiveUpdate nixpkgs.lib flakeLib;
+      findModules =
+        dir:
+        flatten (
+          mapAttrsToList
+          (
+            name: type:
+            let
+              nodeName = (dir + "/${name}");
+            in
+            if type == "directory"
+            then findModules nodeName
+            else
+              if hasSuffix ".nix" nodeName
+              then nodeName
+              else []
+          )
+          (readDir dir)
+        );
+      flakeLib = foldl recursiveUpdate {} (map (file: import file {inherit lib;}) (findModules ./lib));
+      lib = recursiveUpdate nixpkgs.lib flakeLib;
     in
     {
       lib = flakeLib;
       nixosModules =
-        builtins.map
-          (x: { config, pkgs, ... }: (x { inherit config lib pkgs; })) # Overwrite the lib that is passed to the module with our own
-          (import ./module);
+        map
+          (x: { config, pkgs, ... }: (import x { inherit config lib pkgs; })) # Import the modules; overwrite the lib that is passed to the module with our combined one
+          (findModules ./module);
     } // (
       flake-utils.lib.eachDefaultSystem (system:
       let
