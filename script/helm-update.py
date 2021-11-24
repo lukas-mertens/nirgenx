@@ -17,12 +17,16 @@ def reformat(lock):
       num = version["version"]
       name = version["name"]
       if len(version["urls"]) == 0:
-        sys.stderr.write(f"Version {num} of release {name} has no URL!")
+        sys.stderr.write(f"Version {num} of release {name} has no URL!\n")
         sys.stderr.flush()
         continue
       if len(version["urls"]) > 1:
-        sys.stderr.write(f"Version {num} of release {name} has multiple URLs!")
+        sys.stderr.write(f"Version {num} of release {name} has multiple URLs!\n")
         sys.stderr.flush()
+      if not "digest" in version:
+        sys.stderr.write(f"Version {num} of release {name} has no digest! - skipping\n")
+        sys.stderr.flush()
+        continue
       versions[num] = {
         "digest": version["digest"],
         "url": version["urls"][0],
