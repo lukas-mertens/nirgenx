@@ -1,4 +1,4 @@
-# kubenix
+# nirgenx
 
 Deploy kubernetes applications right from your NixOS configuration
 

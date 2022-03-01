@@ -1,5 +1,5 @@
 {
-  description = "KubeNix";
+  description = "Kubernetes deployments in NixOS";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -41,10 +41,12 @@
     in
     {
       lib = flakeLib;
-      nixosModules =
-        map
-          (x: { config, pkgs, ... }: (import x { inherit config lib pkgs; })) # Import the modules; overwrite the lib that is passed to the module with our combined one
-          (findModules ./module);
+      nixosModules.nirgenx = { ... }: {
+        imports =
+          map
+            (x: { config, pkgs, ... }: (import x { inherit config lib pkgs; })) # Import the modules; overwrite the lib that is passed to the module with our combined one
+            (findModules ./module);
+      };
     } // (
       flake-utils.lib.eachDefaultSystem (system:
       let
