@@ -12,6 +12,22 @@ with builtins; with lib; {
 
       name = strings.sanitizeDerivationName n;
 
+      scriptDependencies =
+        filter
+          (x: x != "" && (! hasPrefix "http" x))
+          (map
+            (step:
+              if lib.types.helmInstallation.check step
+              then (if isString step.values then step.values else "")
+              else if lib.types.scriptExecution.check step
+              then (if step ? scriptFile then step.scriptFile else "")
+              else (if isString step then step else "")
+            )
+            deployment.steps
+          );
+
+      allScriptDependencies = concatStringsSep " " (map (f: "\"${f}\"") scriptDependencies);
+
       deployScript = pkgs.writeShellScriptBin "nirgenx-deploy-${name}" (
         concatStringsSep "\n" ( flatten (
           [ "set -eux" ]
@@ -47,7 +63,7 @@ with builtins; with lib; {
             deployment.steps
           ) ++ [
             "mkdir -p /var/lib/nirgenx"
-            "sha256sum $0 | awk '{print $1;}' > /var/lib/nirgenx/${name}"
+            "cat $0 ${allScriptDependencies} | sha256sum | awk '{print $1;}' > /var/lib/nirgenx/${name}"
           ]
         ))
       );
@@ -74,7 +90,8 @@ with builtins; with lib; {
           ds = "${deployScript}/bin/nirgenx-deploy-${name}";
         in
         ''
-          if [[ -f /var/lib/nirgenx/${name} ]] && [[ "$(cat /var/lib/nirgenx/${name})" == "$(sha256sum ${ds} | awk '{print $1;}')" ]]; then
+          set -e
+          if [[ -f /var/lib/nirgenx/${name} ]] && [[ "$(cat /var/lib/nirgenx/${name})" == "$(cat ${ds} ${allScriptDependencies} | sha256sum | awk '{print $1;}')" ]]; then
             echo "Deployment script has not changed since the last run - skipping"
             exit 0
           else
