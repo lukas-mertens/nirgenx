@@ -16,77 +16,77 @@
     , nixpkgs
     , ...
     }:
-    with builtins; with nixpkgs.lib;
-    let
-      findModules =
-        dir:
-        flatten (
-          mapAttrsToList
-          (
-            name: type:
-            let
-              nodeName = (dir + "/${name}");
-            in
-            if type == "directory"
-            then findModules nodeName
-            else
-              if hasSuffix ".nix" nodeName
-              then nodeName
-              else []
-          )
-          (readDir dir)
-        );
-      flakeLib = foldl recursiveUpdate {} (map (file: import file {inherit lib;}) (findModules ./lib));
-      lib = recursiveUpdate nixpkgs.lib flakeLib;
-    in
-    {
-      lib = flakeLib;
-      nixosModules.nirgenx = { ... }: {
-        imports =
-          map
-            (x: { config, pkgs, ... }: (import x { inherit config lib pkgs; })) # Import the modules; overwrite the lib that is passed to the module with our combined one
-            (findModules ./module);
-      };
-    } // (
-      flake-utils.lib.eachDefaultSystem (system:
+      with builtins; with nixpkgs.lib;
       let
-        pkgs = nixpkgs.legacyPackages."${system}";
+        findModules =
+          dir:
+          flatten (
+            mapAttrsToList
+              (
+                name: type:
+                let
+                  nodeName = (dir + "/${name}");
+                in
+                if type == "directory"
+                then findModules nodeName
+                else
+                  if hasSuffix ".nix" nodeName
+                  then nodeName
+                  else [ ]
+              )
+              (readDir dir)
+          );
+        flakeLib = foldl recursiveUpdate { } (map (file: import file { inherit lib; }) (findModules ./lib));
+        lib = recursiveUpdate nixpkgs.lib flakeLib;
       in
       {
-        devShell = pkgs.mkShell {
-          builtInputs = with pkgs; [
-            nixpkgs-fmt
-          ];
+        lib = flakeLib;
+        nixosModules.nirgenx = { ... }: {
+          imports =
+            map
+              (x: { config, pkgs, ... }: (import x { inherit config lib pkgs; })) # Import the modules; overwrite the lib that is passed to the module with our combined one
+              (findModules ./module);
         };
+      } // (
+        flake-utils.lib.eachDefaultSystem (system:
+        let
+          pkgs = nixpkgs.legacyPackages."${system}";
+        in
+        {
+          devShell = pkgs.mkShell {
+            builtInputs = with pkgs; [
+              nixpkgs-fmt
+            ];
+          };
 
-        packages = {
-          helm-update = pkgs.substituteAll {
-            name = "helm-update";
-            src = ./script/helm-update.py;
-            dir = "bin";
-            isExecutable = true;
-            inherit (pkgs) nixUnstable;
-            python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
+          packages = {
+            helm-update = pkgs.substituteAll {
+              name = "helm-update";
+              src = ./script/helm-update.py;
+              dir = "bin";
+              isExecutable = true;
+              inherit (pkgs) nixUnstable;
+              python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
+            };
+            yaml2nix = pkgs.substituteAll {
+              name = "yaml2nix";
+              src = ./script/yaml2nix.sh;
+              dir = "bin";
+              isExecutable = true;
+              inherit (pkgs) bash nixUnstable nixfmt remarshal;
+            };
           };
-          yaml2nix = pkgs.substituteAll {
-            name = "yaml2nix";
-            src = ./script/yaml2nix.sh;
-            dir = "bin";
-            isExecutable = true;
-            inherit (pkgs) bash nixUnstable nixfmt remarshal;
-          };
-        };
 
-        apps = {
-          helm-update = flake-utils.lib.mkApp {
-            name = "helm-update";
-            drv = self.packages.${system}.helm-update;
+          apps = {
+            helm-update = flake-utils.lib.mkApp {
+              name = "helm-update";
+              drv = self.packages.${system}.helm-update;
+            };
+            yaml2nix = flake-utils.lib.mkApp {
+              name = "yaml2nix";
+              drv = self.packages.${system}.yaml2nix;
+            };
           };
-          yaml2nix = flake-utils.lib.mkApp {
-            name = "yaml2nix";
-            drv = self.packages.${system}.yaml2nix;
-          };
-        };
-      })
-    );
+        })
+      );
 }

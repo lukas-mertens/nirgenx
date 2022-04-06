@@ -3,7 +3,7 @@ with builtins; with lib; {
   kube = {
 
     createNamespace =
-    name:
+      name:
       {
         apiVersion = "v1";
         kind = "Namespace";
@@ -11,16 +11,16 @@ with builtins; with lib; {
       };
 
     installHelmChart =
-    repository: name: values:
-    {
-      chart = {
-        inherit repository;
+      repository: name: values:
+      {
+        chart = {
+          inherit repository;
+          inherit name;
+        };
         inherit name;
+        namespace = name;
+        inherit values;
       };
-      inherit name;
-      namespace = name;
-      inherit values;
-    };
 
   };
 }

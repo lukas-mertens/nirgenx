@@ -2,7 +2,7 @@
 with builtins; with lib; {
 
   imports = [
-    (mkRenamedOptionModule [ "kubenix" ] [ "nirgenx" ] )
+    (mkRenamedOptionModule [ "kubenix" ] [ "nirgenx" ])
   ];
 
 }
