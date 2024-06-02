@@ -65,7 +65,7 @@
               src = ./script/helm-update.py;
               dir = "bin";
               isExecutable = true;
-              inherit (pkgs) nixUnstable;
+              inherit (pkgs) nix;
               python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
             };
             yaml2nix = pkgs.substituteAll {
@@ -73,7 +73,8 @@
               src = ./script/yaml2nix.sh;
               dir = "bin";
               isExecutable = true;
-              inherit (pkgs) bash nixUnstable nixfmt remarshal;
+              inherit (pkgs) bash nix remarshal;
+              nixfmt = pkgs.nixfmt-rfc-style;
             };
           };
 

@@ -41,7 +41,7 @@ args = sys.argv[1:]
 if not Path("helm.nix").is_file():
   print("No helm.nix found!")
 
-result = Popen(["@nixUnstable@/bin/nix-instantiate", "--eval", "-E", "builtins.toJSON (import ./helm.nix)"], stdout=subprocess.PIPE)
+result = Popen(["@nix@/bin/nix-instantiate", "--eval", "-E", "builtins.toJSON (import ./helm.nix)"], stdout=subprocess.PIPE)
 result.wait()
 
 if not result.returncode == 0:
