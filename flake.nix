@@ -60,7 +60,7 @@
           };
 
           packages = {
-            helm-update = pkgs.substituteAll {
+            helm-update = pkgs.replaceVars {
               name = "helm-update";
               src = ./script/helm-update.py;
               dir = "bin";
@@ -68,7 +68,7 @@
               inherit (pkgs) nix;
               python3 = pkgs.python3.withPackages (p: [ p.pyyaml ]);
             };
-            yaml2nix = pkgs.substituteAll {
+            yaml2nix = pkgs.replaceVars {
               name = "yaml2nix";
               src = ./script/yaml2nix.sh;
               dir = "bin";
